@@ -1,0 +1,17 @@
+# Refresh the blocklists weekly.
+#
+#   sudo cp packaging/adblock-update.* /etc/systemd/system/
+#   sudo systemctl enable --now adblock-update.timer
+
+[Unit]
+Description=Weekly AdBlock list refresh
+
+[Timer]
+OnCalendar=weekly
+# Spread the load on the public list mirrors, and survive a machine that was
+# asleep when the timer was due.
+RandomizedDelaySec=2h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

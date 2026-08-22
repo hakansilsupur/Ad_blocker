@@ -1,0 +1,18 @@
+# Allowlist -- exceptions that always win over every block rule, including the
+# downloaded public lists. Updates never touch this file.
+#
+# One domain per line; it covers subdomains too. Add a domain here when a
+# blocked request turns out to be load-bearing for something you use.
+#
+# The usual suspects, and why you might need them:
+#
+#   connect.facebook.net   "Log in with Facebook" buttons
+#   app-measurement.com    a few Android apps stall on startup without it
+#   segment.io             some SaaS dashboards route features through it
+#   clarity.ms             occasionally gates Microsoft support chat widgets
+#   adjust.com             a handful of apps use it for deep-link routing
+#
+# Uncomment or add what you need:
+
+# connect.facebook.net
+# app-measurement.com

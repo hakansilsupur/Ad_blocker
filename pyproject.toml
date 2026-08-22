@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adblock"
+version = "0.1.0"
+description = "A DNS sinkhole and browser extension that block ads in apps and on websites"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+# No dependencies on purpose: a resolver that sits in front of every request on
+# the network is easier to trust when its whole surface is the standard library.
+dependencies = []
+
+[project.scripts]
+adblock = "adblock.cli:main"
+
+[tool.setuptools]
+packages = ["adblock"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]

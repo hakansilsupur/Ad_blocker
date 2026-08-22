@@ -1,0 +1,51 @@
+# Run the sinkhole as a system service on port 53.
+#
+#   sudo useradd --system --no-create-home --shell /usr/sbin/nologin adblock
+#   sudo cp -r . /opt/adblock && sudo chown -R adblock: /opt/adblock
+#   sudo cp packaging/adblock-dns.service /etc/systemd/system/
+#   sudo systemctl enable --now adblock-dns
+#
+# If port 53 is already taken, it is almost certainly systemd-resolved's stub
+# listener: set DNSStubListener=no in /etc/systemd/resolved.conf and restart it.
+
+[Unit]
+Description=AdBlock DNS sinkhole
+Documentation=https://github.com/hakansilsupur/ad_blocker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=adblock
+Group=adblock
+WorkingDirectory=/opt/adblock
+ExecStart=/usr/bin/python3 -m adblock serve --host 0.0.0.0 --port 53 --stats-port 8053
+Restart=on-failure
+RestartSec=5
+
+# Binding port 53 is the only privilege it needs.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+
+# It reads list files and answers queries; nothing else.
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6
+RestrictNamespaces=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Only lists/ needs to be writable, and only when 'adblock update' runs.
+ReadWritePaths=/opt/adblock/lists
+
+[Install]
+WantedBy=multi-user.target

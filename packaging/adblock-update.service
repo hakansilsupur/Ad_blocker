@@ -1,0 +1,20 @@
+# One-shot list refresh, driven by adblock-update.timer.
+
+[Unit]
+Description=Refresh AdBlock blocklists
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=adblock
+Group=adblock
+WorkingDirectory=/opt/adblock
+ExecStart=/usr/bin/python3 -m adblock update
+# The resolver reads its lists at startup, so restart it to pick up the new set.
+ExecStartPost=/bin/systemctl try-restart adblock-dns.service
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/adblock/lists /opt/adblock/extension/rules

@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Rebuild lists from the seed and check nothing drifted
+        run: |
+          python -m adblock update --offline
+          git diff --exit-code lists/blocklist.txt extension/rules/ads.json
+
+      - name: Check a known ad domain is blocked
+        run: |
+          python -m adblock check example.com
+          ! python -m adblock check doubleclick.net
