@@ -9,6 +9,9 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    # Both builds together take about two minutes. Without a limit a wedged
+    # runner sits at GitHub's six-hour default before anyone finds out.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
