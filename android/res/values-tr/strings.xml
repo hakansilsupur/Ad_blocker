@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Turkish translation. Android picks this automatically when the device
+  language is Turkish; values/strings.xml stays the fallback.
+-->
+<resources>
+    <string name="subtitle">DNS sorgularını cihazda süzer; böylece reklamlar yalnızca tarayıcıda değil, her uygulamada engellenir.</string>
+
+    <string name="status_on">Koruma açık</string>
+    <string name="status_off">Koruma kapalı</string>
+    <string name="start">Korumayı başlat</string>
+    <string name="stop">Korumayı durdur</string>
+
+    <string name="label_blocked">engellenen istek</string>
+    <string name="label_queries">görülen sorgu</string>
+
+    <string name="update_lists">Engel listelerini güncelle</string>
+    <string name="updating">Güncelleniyor…</string>
+    <string name="updating_source">İndiriliyor %1$d/%2$d: %3$s</string>
+    <string name="update_done">Güncellendi: %1$d alan adı engelleniyor</string>
+    <string name="update_failed">Hiçbir liste kaynağına ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin.</string>
+
+    <string name="list_info">%1$d alan adı engelleniyor · liste: %2$s · sorguların %%%3$d\'ü engellendi</string>
+    <string name="list_bundled">uygulamayla gelen liste</string>
+
+    <string name="recently_blocked">Son engellenenler</string>
+    <string name="nothing_blocked_yet">Henüz bir şey engellenmedi. Reklamlı bir uygulama açın, burası dolmaya başlar.</string>
+
+    <string name="allowed_header">İzin verilen sorgular</string>
+    <string name="allowed_hint">Bir uygulamada hâlâ reklam mı görüyorsunuz? Uygulamayı açıp buraya dönün ve reklamın geldiği alan adına dokunun.</string>
+    <string name="nothing_allowed_yet">Henüz kayıt yok. Koruma açıldığında sorgular burada görünür.</string>
+    <string name="block_title">%1$s engellensin mi?</string>
+    <string name="block_message">Bu alan adı cihazdaki tüm uygulamalar için çözümlenmeyecek. Bir şey bozulursa uygulamanın dosyalarındaki allowlist.txt dosyasından kaldırabilirsiniz.</string>
+    <string name="block_confirm">Engelle</string>
+    <string name="block_done">%1$s engelleniyor</string>
+    <string name="block_failed">%1$s engellenemedi</string>
+
+    <string name="permission_denied">VPN izni verilmezse engelleyici DNS sorgularını göremez.</string>
+
+    <string name="notification_title">AdBlock çalışıyor</string>
+    <string name="notification_text">DNS süzülüyor · %1$d alan adı engelleniyor</string>
+    <string name="channel_name">Koruma durumu</string>
+    <string name="channel_description">DNS süzme etkinken kalıcı bir bildirim gösterir.</string>
+
+    <string name="footer_note">Bu bir yerel süzgeçtir, gizlilik tüneli değil: izin verilen sorgular yine de üst sunucunuza gider. İçerikle aynı alan adından gelen reklamlar (örneğin YouTube video öncesi reklamları) DNS ile ayrılamaz.</string>
+</resources>

@@ -28,6 +28,17 @@ public final class Stats {
 
     private static final Deque<String> recent = new ArrayDeque<String>();
 
+    /**
+     * Domains that were looked up and allowed through, most recent first and
+     * without repeats.
+     *
+     * <p>This is the list that makes an ad the blocker missed actionable: when
+     * something still shows ads, the domain it fetched them from is sitting in
+     * here, and one tap adds it to the blocklist. Guessing at network names
+     * from the outside does not work nearly as well.
+     */
+    private static final Deque<String> allowed = new ArrayDeque<String>();
+
     private Stats() {
     }
 
@@ -42,9 +53,34 @@ public final class Stats {
         }
     }
 
-    public static void recordForwarded() {
+    public static void recordForwarded(String domain) {
         forwarded.incrementAndGet();
         queries.incrementAndGet();
+        if (domain == null || domain.length() == 0) {
+            return;
+        }
+        synchronized (allowed) {
+            // A page load repeats the same name many times; keep one entry so
+            // the list stays readable.
+            allowed.remove(domain);
+            allowed.addFirst(domain);
+            while (allowed.size() > RECENT_LIMIT) {
+                allowed.removeLast();
+            }
+        }
+    }
+
+    public static List<String> recentAllowed() {
+        synchronized (allowed) {
+            return new ArrayList<String>(allowed);
+        }
+    }
+
+    /** Drop a name from the allowed list once the user has blocked it. */
+    public static void forgetAllowed(String domain) {
+        synchronized (allowed) {
+            allowed.remove(domain);
+        }
     }
 
     public static void recordError() {
@@ -73,6 +109,9 @@ public final class Stats {
         errors.set(0);
         synchronized (recent) {
             recent.clear();
+        }
+        synchronized (allowed) {
+            allowed.clear();
         }
     }
 }

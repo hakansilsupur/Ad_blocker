@@ -166,6 +166,34 @@ four public sources the desktop `adblock update` uses — around 200,000 domains
 Android shows a persistent key icon while any VPN is active. That is the
 system's, not the app's, and there is no way to hide it.
 
+### When an app still shows ads
+
+Two different problems hide behind "an ad got through", and only one of them
+is fixable.
+
+**The domain is not on the list yet.** Most common, and the app can tell you
+exactly which domain it was. The **Allowed lookups** section lists every name
+that resolved; open the offending app, come back, and the ad server will be
+near the top. Tap it to block it. Your picks go in `userblock.txt`, separate
+from the downloaded lists, so an update never discards them — and if a block
+turns out to break something, `allowlist.txt` overrides it.
+
+This beats guessing at network names from the outside: an app that mediates
+through a regional network (Admost and ReklamStore in Turkey, CSJ or GDT in
+Chinese-built apps) uses domains no general list is guaranteed to carry.
+
+**The ad comes from the same domain as the content.** A sponsor banner drawn
+inside the app's own layout, a rewarded video streamed from the same CDN as
+everything else, YouTube's pre-roll. DNS sees one hostname serving both the
+thing you want and the thing you don't, and blocking it takes the app with it.
+No DNS blocker can separate these — not this one, not Pi-hole, not AdGuard's
+DNS. It needs a filter that can see inside the connection.
+
+A blocked ad slot can also leave a visible hole: a WebView that was going to
+load an ad shows its own "page not available" error instead. That is the block
+working. Removing the empty frame means editing the app's UI, which only an
+in-app filter or a modified client can do.
+
 ### Testing it without a device
 
 The parts that decide what happens to a packet — list matching, DNS parsing,

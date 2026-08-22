@@ -39,6 +39,10 @@ public class MainActivity extends Activity {
     private TextView queryCount;
     private TextView listInfo;
     private TextView recentList;
+    private android.widget.LinearLayout allowedList;
+
+    /** What the allowed-list is currently showing, to avoid rebuilding it. */
+    private List<String> shownAllowed = java.util.Collections.emptyList();
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable refresh = new Runnable() {
@@ -61,6 +65,7 @@ public class MainActivity extends Activity {
         queryCount = (TextView) findViewById(R.id.query_count);
         listInfo = (TextView) findViewById(R.id.list_info);
         recentList = (TextView) findViewById(R.id.recent);
+        allowedList = (android.widget.LinearLayout) findViewById(R.id.allowed_list);
 
         toggleButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -229,5 +234,91 @@ public class MainActivity extends Activity {
         recentList.setText(recent.isEmpty()
                 ? getString(R.string.nothing_blocked_yet)
                 : TextUtils.join("\n", recent));
+
+        renderAllowed();
+    }
+
+    /**
+     * List the domains that were allowed through, each one tappable.
+     *
+     * <p>When an app still shows ads, the domain serving them is in this list.
+     * Tapping it blocks it, which is far more reliable than trying to guess
+     * which network a given app happens to use.
+     */
+    private void renderAllowed() {
+        final List<String> domains = Stats.recentAllowed();
+        if (domains.equals(shownAllowed)) {
+            return; // nothing changed; leave the rows alone
+        }
+        shownAllowed = domains;
+        allowedList.removeAllViews();
+
+        if (domains.isEmpty()) {
+            TextView empty = new TextView(this);
+            empty.setText(R.string.nothing_allowed_yet);
+            empty.setTextColor(getResources().getColor(R.color.muted));
+            empty.setTextSize(12);
+            allowedList.addView(empty);
+            return;
+        }
+
+        for (int i = 0; i < domains.size(); i++) {
+            final String domain = domains.get(i);
+            TextView row = new TextView(this);
+            row.setText(domain);
+            row.setTextSize(13);
+            row.setPadding(0, 14, 0, 14);
+            row.setClickable(true);
+            row.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    confirmBlock(domain);
+                }
+            });
+            allowedList.addView(row);
+        }
+    }
+
+    private void confirmBlock(final String domain) {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.block_title, domain))
+                .setMessage(R.string.block_message)
+                .setPositiveButton(R.string.block_confirm,
+                        new android.content.DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(
+                                    android.content.DialogInterface dialog, int which) {
+                                blockDomain(domain);
+                            }
+                        })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void blockDomain(final String domain) {
+        // File write and list reload both stay off the main thread.
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final boolean ok = Lists.addUserBlock(MainActivity.this, domain);
+                if (ok) {
+                    Stats.forgetAllowed(domain);
+                }
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(
+                                MainActivity.this,
+                                getString(ok ? R.string.block_done : R.string.block_failed,
+                                        domain),
+                                Toast.LENGTH_SHORT).show();
+                        if (ok) {
+                            DnsVpnService.reload(MainActivity.this);
+                            render();
+                        }
+                    }
+                });
+            }
+        }, "adblock-user-block").start();
     }
 }

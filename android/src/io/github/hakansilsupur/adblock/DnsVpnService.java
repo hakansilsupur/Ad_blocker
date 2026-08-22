@@ -346,7 +346,7 @@ public class DnsVpnService extends VpnService {
                     return;
                 }
 
-                Stats.recordForwarded();
+                Stats.recordForwarded(question.name);
                 byte[] answer = response;
                 if (answer.length > IpPacket.maxPayload(MTU)) {
                     // Too big for the tunnel: tell the client to use TCP.

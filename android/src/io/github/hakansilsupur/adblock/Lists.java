@@ -39,6 +39,9 @@ public final class Lists {
     /** The user's own exceptions, which survive every update. */
     public static final String USER_ALLOWLIST = "allowlist.txt";
 
+    /** Domains the user blocked by hand, which also survive every update. */
+    public static final String USER_BLOCKLIST = "userblock.txt";
+
     /** The same sources the desktop updater uses. */
     public static final String[] SOURCES = {
         "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts",
@@ -67,6 +70,13 @@ public final class Lists {
             loadAsset(context, blocklist, ASSET_BLOCKLIST);
         }
 
+        // The user's own blocks are added before the allow rules, so an
+        // explicit exception can still override one.
+        File userBlocklist = new File(context.getFilesDir(), USER_BLOCKLIST);
+        if (userBlocklist.isFile()) {
+            loadFile(blocklist, userBlocklist);
+        }
+
         // Allow rules are applied last so they win over everything above.
         loadAsset(context, blocklist, ASSET_ALLOWLIST);
         File userAllowlist = new File(context.getFilesDir(), USER_ALLOWLIST);
@@ -74,6 +84,35 @@ public final class Lists {
             loadAllowFile(blocklist, userAllowlist);
         }
         return blocklist;
+    }
+
+    /**
+     * Add one domain to the user's own blocklist.
+     *
+     * <p>Written to a separate file from the downloaded list so that updating
+     * the public lists never discards it.
+     *
+     * @return true if it was written
+     */
+    public static boolean addUserBlock(Context context, String domain) {
+        String name = Blocklist.normalize(domain);
+        if (name.length() == 0) {
+            return false;
+        }
+        File file = new File(context.getFilesDir(), USER_BLOCKLIST);
+        Writer writer = null;
+        try {
+            writer = new OutputStreamWriter(
+                    new java.io.FileOutputStream(file, true), "UTF-8");
+            writer.write(name);
+            writer.write('\n');
+            return true;
+        } catch (IOException e) {
+            Log.w(TAG, "could not add " + name + " to the user blocklist", e);
+            return false;
+        } finally {
+            closeQuietly(writer);
+        }
     }
 
     private static boolean loadFile(Blocklist blocklist, File file) {

@@ -131,9 +131,32 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="@string/allowed_header"
+            android:textStyle="bold"
+            android:paddingTop="18dp"
+            android:paddingBottom="2dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/allowed_hint"
+            android:textColor="@color/muted"
+            android:textSize="12sp"
+            android:paddingBottom="6dp" />
+
+        <!-- Rows are added here at runtime so each one can be tapped. -->
+        <LinearLayout
+            android:id="@+id/allowed_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:text="@string/footer_note"
             android:textColor="@color/muted"
             android:textSize="11sp"
-            android:paddingTop="8dp" />
+            android:paddingTop="18dp" />
     </LinearLayout>
 </ScrollView>

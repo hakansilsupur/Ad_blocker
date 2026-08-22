@@ -81,6 +81,51 @@ tenjin.io
 flurry.com
 adsymptotic.com
 
+# --- Turkish ad networks and mediation ------------------------------------
+# Turkish apps (news, sport, banking) mostly mediate through these rather
+# than calling Google directly.
+admost.com
+admost.co
+reklamstore.com
+admatic.com.tr
+admatic.com
+adpushup.com
+adsmind.com
+gnetwork.com.tr
+mobilike.com
+adcolony.com.tr
+
+# --- Chinese mobile ad SDKs -----------------------------------------------
+# Cameras, cleaners and IoT companion apps embed these for rewarded video.
+csjplatform.com
+pangolin-sdk-toutiao.com
+snssdk.com
+zijieapi.com
+gdt.qq.com
+mobads.baidu.com
+cpro.baidu.com
+union.163.com
+adview.cn
+domob.cn
+mimo.xiaomi.com
+adintl.xiaomi.com
+
+# --- More mobile mediation and rewarded video -----------------------------
+appodeal.com
+bidmachine.io
+pubnative.net
+inner-active.mobi
+admarvel.com
+tapdaq.com
+adsbynimbus.com
+mobilefuse.com
+smaato.com
+yieldlab.net
+adtiming.com
+mtburn.com
+nend.net
+maio.jp
+
 # --- Programmatic exchanges and SSPs --------------------------------------
 adnxs.com
 adnxs-simple.com

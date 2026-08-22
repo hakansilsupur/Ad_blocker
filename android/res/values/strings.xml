@@ -23,6 +23,15 @@
     <string name="recently_blocked">Recently blocked</string>
     <string name="nothing_blocked_yet">Nothing blocked yet. Open an app with ads and watch this fill up.</string>
 
+    <string name="allowed_header">Allowed lookups</string>
+    <string name="allowed_hint">Still seeing ads in an app? Open it, come back, and tap the domain the ads came from.</string>
+    <string name="nothing_allowed_yet">Nothing yet. Lookups appear here once protection is on.</string>
+    <string name="block_title">Block %1$s?</string>
+    <string name="block_message">This domain stops resolving for every app on the device. If something breaks, remove it from allowlist.txt in the app\'s files.</string>
+    <string name="block_confirm">Block</string>
+    <string name="block_done">Blocking %1$s</string>
+    <string name="block_failed">Could not block %1$s</string>
+
     <string name="permission_denied">Without VPN permission the blocker cannot see DNS queries.</string>
 
     <string name="notification_title">AdBlock is running</string>
