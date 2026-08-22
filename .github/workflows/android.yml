@@ -32,9 +32,22 @@ jobs:
 
       - name: Check the APK is well formed
         run: |
+          set -euo pipefail
           APK=android/build/adblock-debug.apk
-          "$ANDROID_HOME"/build-tools/*/apksigner verify --verbose "$APK"
-          "$ANDROID_HOME"/build-tools/*/aapt dump badging "$APK" | head -5
+          # Runners carry several build-tools versions, so pick exactly one:
+          # an unquoted glob here passes the other paths as arguments.
+          TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
+          echo "using ${TOOLS}"
+          "${TOOLS}apksigner" verify --verbose "$APK"
+          "${TOOLS}aapt" dump badging "$APK" | head -5
+          # Both build paths must produce an APK, not just exit zero. Matched
+          # by glob rather than an assumed filename, and without a pipe: under
+          # pipefail, `ls | head` can die of SIGPIPE when there are several.
+          shopt -s nullglob
+          GRADLE_APKS=(android/build/outputs/apk/debug/*.apk)
+          test "${#GRADLE_APKS[@]}" -gt 0
+          echo "gradle APK: ${GRADLE_APKS[0]}"
+          test -s "${GRADLE_APKS[0]}"
 
       - uses: actions/upload-artifact@v4
         with:
