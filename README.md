@@ -1,17 +1,20 @@
 # AdBlock — for apps *and* websites
 
-Ads reach you through two different doors, so this blocks both:
+Ads reach you through several different doors, so this blocks all of them:
 
 | Layer | What it is | What it stops |
 | --- | --- | --- |
 | **DNS sinkhole** (`adblock serve`) | A local resolver that answers ad and tracker hostnames with `0.0.0.0` | Ads and telemetry in **native apps**, games, smart TVs, and every browser on the device — anything that resolves a hostname |
+| **Android app** (`android/`) | The same filter on the phone itself, as a local `VpnService` — no root, nothing to configure | Ads in **every app on the handset**, on mobile data as well as Wi-Fi |
 | **Browser extension** (`extension/`) | Manifest V3, `declarativeNetRequest` + cosmetic filtering | Ad requests **and the empty boxes they leave behind** on websites |
 
-Use both. DNS is the only layer that can reach inside an app you don't control;
-the extension is the only layer that can see the page and tidy up after itself.
+Use both on the desktop. DNS is the only layer that can reach inside an app you
+don't control; the extension is the only layer that can see the page and tidy up
+after itself. On a phone, the Android app is both halves of the DNS story at
+once: it is the resolver, and it is the thing pointing the device at it.
 
-Everything is standard library Python and plain JavaScript — no dependencies,
-no build step, nothing phoning home.
+Standard library Python, plain JavaScript, and dependency-free Java — nothing
+to install, no build step for the desktop halves, nothing phoning home.
 
 ---
 
@@ -69,8 +72,10 @@ python -m adblock serve --host 0.0.0.0 --port 53
 ```
 
 **Android / iOS** — set a static DNS server in Wi-Fi settings to the machine's
-IP. Both require port `53`. Note that Android's "Private DNS" (DoH/DoT) bypasses
-this entirely; turn it off for the blocker to work.
+IP. Both require port `53`, and it only applies on that network. On Android,
+[the app](#the-android-app) is the better answer: it needs no configuration and
+keeps working on mobile data. Note that Android's "Private DNS" (DoH/DoT)
+bypasses a network-level resolver entirely; turn it off for that setup to work.
 
 ### Running on port 53
 
@@ -92,6 +97,87 @@ On systemd hosts, `packaging/adblock-dns.service` runs it as a hardened,
 unprivileged service that is allowed to bind port 53. Note that Ubuntu and
 Fedora ship `systemd-resolved` listening on port 53 already — disable its stub
 listener first (`DNSStubListener=no` in `/etc/systemd/resolved.conf`).
+
+---
+
+## The Android app
+
+A local `VpnService` that filters DNS on the phone itself. No root, no DNS
+settings to change, and it works on mobile data as well as Wi-Fi — which the
+router approach cannot do.
+
+The tunnel is deliberately narrow. It advertises one fake DNS server
+(`10.111.222.2`) and routes **only that address**, so DNS is the only traffic
+that ever enters the app. Everything else on the phone takes its normal path
+and is never seen, let alone relayed:
+
+```
+   an app asks for ads.example.com
+     -> Android sends the query to 10.111.222.2
+     -> the kernel routes it into the tun device
+     -> the service reads the question
+          blocked -> answers 0.0.0.0 on the spot; nothing leaves the phone
+          allowed -> relays it to your upstream over a protected socket
+```
+
+### Getting it
+
+Grab `adblock-debug.apk` from the **Android APK** workflow run on GitHub
+(Actions → latest run → Artifacts), or build it yourself:
+
+```bash
+android/build.sh                          # -> android/build/adblock-debug.apk
+adb install -r android/build/adblock-debug.apk
+```
+
+`build.sh` needs a JDK, `aapt2`, `apksigner`, `zipalign`, a dexer (`d8`, or
+`dalvik-exchange` on Debian/Ubuntu), and an `android.jar`. It does not need
+Gradle, the Android Gradle Plugin, or a network connection. On Debian/Ubuntu:
+
+```bash
+sudo apt install android-sdk-build-tools dalvik-exchange android-sdk-platform-23
+```
+
+If you would rather use the usual toolchain, the same sources build with
+Gradle — that is what Android Studio and CI use:
+
+```bash
+cd android && ./gradlew assembleDebug     # -> build/outputs/apk/debug/
+```
+
+Both paths compile the same `src/`, `res/` and `AndroidManifest.xml`; there is
+no second copy of the app.
+
+The APK is signed with a throwaway debug key, so Android will call it an
+unknown app — allow installation from your file manager, or use `adb install`.
+To sign with your own key: `KEYSTORE=my.jks KEY_ALIAS=upload android/build.sh`.
+
+### Using it
+
+Open the app, tap **Start protection**, and accept Android's VPN prompt (the
+system shows this for any app that creates a tunnel; nothing leaves your phone
+because of it). The screen shows what is being blocked as it happens.
+
+The APK bundles the same curated seed list as the desktop resolver, so it
+blocks from the moment it is installed. **Update blocklists** pulls the same
+four public sources the desktop `adblock update` uses — around 200,000 domains
+— and stores them privately in the app.
+
+Android shows a persistent key icon while any VPN is active. That is the
+system's, not the app's, and there is no way to hide it.
+
+### Testing it without a device
+
+The parts that decide what happens to a packet — list matching, DNS parsing,
+IP/UDP construction — are written without Android imports so they run on a
+plain JVM:
+
+```bash
+android/run-tests.sh     # 83 checks, no emulator needed
+```
+
+That covers the code where a mistake is silent: a wrong checksum, an
+off-by-one in a compressed name, an allow rule that fails to override.
 
 ---
 
@@ -179,6 +265,10 @@ Being straight about the limits:
   Android, or block those endpoints at the router.
 - **Hardcoded IPs bypass it.** A few ad SDKs skip DNS entirely. Blocking those
   needs a firewall rule, not a resolver.
+- **The Android app holds the phone's one VPN slot.** Android allows a single
+  active VPN, so it cannot run alongside a work VPN. It also carries UDP DNS
+  only: a client that insists on DNS over TCP gets told to retry, and nothing
+  answers.
 - **Cosmetic filters go stale.** Sites rename their classes. A stale selector
   stops matching rather than breaking anything, but it does mean the per-site
   lists in `cosmetic-filters.js` need occasional upkeep.
@@ -191,8 +281,9 @@ Being straight about the limits:
 
 ```bash
 python -m unittest discover -s tests -v   # 90 tests, no network needed
+android/run-tests.sh                      # 83 checks on the Android logic
 python -m adblock update --offline        # rebuild generated files from the seed
-python tools/make_icons.py                # regenerate the extension icons
+python tools/make_icons.py                # regenerate extension and app icons
 ```
 
 Layout:
@@ -206,6 +297,11 @@ adblock/          DNS resolver, blocklist engine, CLI
 extension/        Manifest V3 browser extension
   src/              service worker, content script, cosmetic filters
   rules/ads.json    generated declarativeNetRequest rules
+android/          VpnService DNS filter for the phone (no dependencies)
+  src/              Blocklist, DnsMessage, IpPacket, the service, the UI
+  build.sh          APK build with SDK tools only, no Gradle
+  build.gradle.kts  the same sources through the usual toolchain
+  tests/            JVM tests for the packet and matching logic
 lists/            seed.txt (curated), blocklist.txt (generated), allowlist.txt (yours)
 tests/            unittest suite, including static checks on the extension
 tools/            icon generation

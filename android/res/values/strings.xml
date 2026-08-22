@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AdBlock</string>
+    <string name="subtitle">Filters DNS locally, so ads are blocked in every app on this device — not just the browser.</string>
+
+    <string name="status_on">Protection on</string>
+    <string name="status_off">Protection off</string>
+    <string name="start">Start protection</string>
+    <string name="stop">Stop protection</string>
+
+    <string name="label_blocked">requests blocked</string>
+    <string name="label_queries">lookups seen</string>
+
+    <string name="update_lists">Update blocklists</string>
+    <string name="updating">Updating…</string>
+    <string name="updating_source">Downloading %1$d/%2$d: %3$s</string>
+    <string name="update_done">Updated: %1$d domains blocked</string>
+    <string name="update_failed">Could not reach any blocklist source. Check your connection and try again.</string>
+
+    <string name="list_info">%1$d domains blocked · list from %2$s · %3$d%% of lookups blocked</string>
+    <string name="list_bundled">bundled seed</string>
+
+    <string name="recently_blocked">Recently blocked</string>
+    <string name="nothing_blocked_yet">Nothing blocked yet. Open an app with ads and watch this fill up.</string>
+
+    <string name="permission_denied">Without VPN permission the blocker cannot see DNS queries.</string>
+
+    <string name="notification_title">AdBlock is running</string>
+    <string name="notification_text">Filtering DNS · %1$d domains blocked</string>
+    <string name="channel_name">Protection status</string>
+    <string name="channel_description">Shows an ongoing notification while DNS filtering is active.</string>
+
+    <string name="footer_note">This is a local filter, not a privacy tunnel: allowed lookups still go to your upstream resolver. Ads served from the same domain as the content they sit in (YouTube pre-roll, for one) cannot be separated by DNS.</string>
+</resources>

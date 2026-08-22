@@ -90,14 +90,62 @@ def _png(width: int, height: int, raw: bytes) -> bytes:
     )
 
 
+#: Android launcher icon densities: mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi.
+LAUNCHER_SIZES = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
+
+#: Notification icons are drawn as a mask: only the alpha channel survives, so
+#: they must be a white shape on transparency rather than the coloured badge.
+STATUS_SIZES = {"mdpi": 24, "hdpi": 36, "xhdpi": 48, "xxhdpi": 72, "xxxhdpi": 96}
+
+
+def render_status_icon(size: int) -> bytes:
+    """A white diamond on transparency, for the status bar."""
+    rows = bytearray()
+    step = 1.0 / SUPERSAMPLE
+    samples = SUPERSAMPLE * SUPERSAMPLE
+    for py in range(size):
+        rows.append(0)
+        for px in range(size):
+            covered = 0
+            for sy in range(SUPERSAMPLE):
+                for sx in range(SUPERSAMPLE):
+                    x = px + (sx + 0.5) * step
+                    y = py + (sy + 0.5) * step
+                    if _in_diamond(x, y, size, 0.42) and not _in_diamond(x, y, size, 0.21):
+                        covered += 1
+            alpha = round(255 * covered / samples)
+            rows += bytes((255, 255, 255, alpha))
+    return _png(size, size, bytes(rows))
+
+
+def write_android_icons(root: Path) -> int:
+    """Write launcher and status-bar icons into the Android res/ tree."""
+    written = 0
+    for density, size in LAUNCHER_SIZES.items():
+        out_dir = root / "android" / "res" / f"mipmap-{density}"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "ic_launcher.png").write_bytes(render(size, ON_COLOR))
+        written += 1
+    for density, size in STATUS_SIZES.items():
+        out_dir = root / "android" / "res" / f"drawable-{density}"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        (out_dir / "ic_stat_shield.png").write_bytes(render_status_icon(size))
+        written += 1
+    return written
+
+
 def main() -> None:
-    out_dir = Path(__file__).resolve().parent.parent / "extension" / "icons"
+    root = Path(__file__).resolve().parent.parent
+    out_dir = root / "extension" / "icons"
     out_dir.mkdir(parents=True, exist_ok=True)
     for size in SIZES:
         (out_dir / f"icon{size}.png").write_bytes(render(size, ON_COLOR))
     for size in (16, 32):
         (out_dir / f"icon{size}-off.png").write_bytes(render(size, OFF_COLOR))
     print(f"wrote {len(SIZES) + 2} icons to {out_dir}")
+
+    count = write_android_icons(root)
+    print(f"wrote {count} icons to {root / 'android' / 'res'}")
 
 
 if __name__ == "__main__":

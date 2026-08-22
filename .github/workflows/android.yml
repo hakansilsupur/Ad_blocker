@@ -1,0 +1,45 @@
+name: Android APK
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Run the core logic tests on the JVM
+        run: android/run-tests.sh
+
+      # The toolchain-only build: no Gradle, no plugin download. This is the
+      # APK that gets published as an artifact.
+      - name: Build the APK with the SDK build tools
+        run: android/build.sh
+
+      # The conventional build, kept in CI so the two paths cannot drift.
+      - name: Build the APK with Gradle
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Check the APK is well formed
+        run: |
+          APK=android/build/adblock-debug.apk
+          "$ANDROID_HOME"/build-tools/*/apksigner verify --verbose "$APK"
+          "$ANDROID_HOME"/build-tools/*/aapt dump badging "$APK" | head -5
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adblock-debug-apk
+          path: |
+            android/build/adblock-debug.apk
+            android/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

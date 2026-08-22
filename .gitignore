@@ -11,3 +11,11 @@ venv/
 
 # Packed extension builds
 extension.zip
+
+# Android build outputs and local signing material
+android/build/
+android/.gradle/
+android/local.properties
+*.apk
+*.keystore
+*.jks
