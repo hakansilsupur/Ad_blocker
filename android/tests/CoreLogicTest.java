@@ -1,5 +1,6 @@
 import io.github.hakansilsupur.adblock.AdHints;
 import io.github.hakansilsupur.adblock.Blocklist;
+import io.github.hakansilsupur.adblock.CriticalDomains;
 import io.github.hakansilsupur.adblock.DnsCache;
 import io.github.hakansilsupur.adblock.DnsMessage;
 import io.github.hakansilsupur.adblock.IpPacket;
@@ -41,6 +42,7 @@ public final class CoreLogicTest {
         cacheBehaviour();
         cachedAnswerMatchesTheAsker();
         adHints();
+        criticalDomains();
 
         System.out.println();
         if (failures.isEmpty()) {
@@ -376,6 +378,34 @@ public final class CoreLogicTest {
 
         check(!AdHints.looksLikeAd(null), "handles null");
         check(!AdHints.looksLikeAd(""), "handles empty");
+    }
+
+    // ------------------------------------------------------ critical domains
+
+    private static void criticalDomains() {
+        section("critical domains");
+        // Straight from a real capture: this sat two rows below an ad server
+        // in the lookups list, and one tap would have killed every
+        // notification on the phone.
+        check(CriticalDomains.isCritical("mtalk.google.com"), "push endpoint is protected");
+        check(CriticalDomains.isCritical("connectivitycheck.gstatic.com"),
+                "connectivity check is protected");
+        check(CriticalDomains.isCritical("firebaseinstallations.googleapis.com"),
+                "subdomains of a protected name are protected");
+        check(CriticalDomains.isCritical("android.clients.google.com"),
+                "Play services endpoint is protected");
+
+        equal(CriticalDomains.whatBreaks("mtalk.google.com"), "push notifications",
+                "says what breaks");
+        check(CriticalDomains.whatBreaks("mtgglobals.com") == null,
+                "an ad server carries no warning");
+        check(CriticalDomains.whatBreaks("mraid.bigo.sg") == null,
+                "an ad subdomain carries no warning");
+        check(CriticalDomains.whatBreaks(null) == null, "handles null");
+
+        // The warning must not fire on a lookalike suffix.
+        check(!CriticalDomains.isCritical("notgoogleapis.com"),
+                "a suffix lookalike is not protected");
     }
 
     // ----------------------------------------------------------------- cache

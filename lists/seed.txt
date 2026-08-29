@@ -110,6 +110,26 @@ domob.cn
 mimo.xiaomi.com
 adintl.xiaomi.com
 
+# --- SDK serving domains, observed on a real handset ----------------------
+# The lesson from a live capture: an SDK's brand domain is not what it
+# talks to. Mintegral resolves mtgglobals.com, not mintegral.com; Pangle
+# uses pangle-b.io and pglstatp.com; Liftoff serves creatives from
+# liftoff-creatives.io. Blocking the brand name alone catches nothing.
+mtgglobals.com
+pangle-b.io
+pglstatp.com
+i18n-pglstatp.com
+pglstatp-toutiao.com
+liftoff-creatives.io
+advlion.com
+mossturbo.com
+display.io
+hookspf.com
+firwinds.site
+# MRAID is an ad-creative standard, so this subdomain is unambiguous --
+# unlike bigo.sg itself, which also serves the Bigo Live app.
+mraid.bigo.sg
+
 # --- More mobile mediation and rewarded video -----------------------------
 # Full-screen "install this app" interstitials, the kind with a Reklamsiz
 # button, usually come from one of these.

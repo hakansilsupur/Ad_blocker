@@ -33,6 +33,7 @@
     <string name="nothing_allowed_yet">Henüz kayıt yok. Koruma açıldığında sorgular burada görünür.</string>
     <string name="block_title">%1$s engellensin mi?</string>
     <string name="block_message">Bu alan adı cihazdaki tüm uygulamalar için çözümlenmeyecek. Bir şey bozulursa uygulamanın dosyalarındaki allowlist.txt dosyasından kaldırabilirsiniz.</string>
+    <string name="block_message_critical">Dikkat: bu bir reklam sunucusu değil. Engellerseniz cihazın tamamında %1$s bozulur ve nedenini sonradan bulmak zor olur. Yalnızca emin olduğunuzda yapın.</string>
     <string name="block_confirm">Engelle</string>
     <string name="block_done">%1$s engelleniyor</string>
     <string name="block_failed">%1$s engellenemedi</string>

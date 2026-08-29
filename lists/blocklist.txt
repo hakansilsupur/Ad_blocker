@@ -1,4 +1,4 @@
-# 258 blocked domains
+# 270 blocked domains
 2mdn.net
 2o7.net
 360yield.com
@@ -45,6 +45,7 @@ adsymptotic.com
 adtilt.com
 adtiming.com
 adview.cn
+advlion.com
 agkn.com
 airship.com
 amazon-adsystem.com
@@ -91,6 +92,7 @@ csjplatform.com
 data.mistat.xiaomi.com
 demdex.net
 digitalturbine.com
+display.io
 districtm.io
 domob.cn
 doubleclick.net
@@ -100,6 +102,7 @@ everesttech.net
 exelator.com
 exoclick.com
 eyeota.net
+firwinds.site
 flurry.com
 fullstory.com
 fyber.com
@@ -115,8 +118,10 @@ hbbtv.zdf.de
 heapanalytics.com
 hilltopads.net
 histats.com
+hookspf.com
 hotjar.com
 hotjar.io
+i18n-pglstatp.com
 iadsdk.apple.com
 id5-sync.com
 improvedigital.com
@@ -136,6 +141,7 @@ kochavatracking.com
 krxd.net
 leanplum.com
 lgsmartad.com
+liftoff-creatives.io
 liftoff.io
 lijit.com
 liveramp.com
@@ -162,8 +168,11 @@ mobfox.com
 mobilefuse.com
 mobilike.com
 mopub.com
+mossturbo.com
 mouseflow.com
+mraid.bigo.sg
 mtburn.com
+mtgglobals.com
 nend.net
 nielsen.com
 ogury.co
@@ -174,12 +183,15 @@ onesignal.com
 onetag-sys.com
 openx.net
 outbrain.com
+pangle-b.io
 pangle.io
 pangleglobal.com
 pangolin-sdk-toutiao.com
 parsely.com
 persona.ly
 petalads.huawei.com
+pglstatp-toutiao.com
+pglstatp.com
 pixel.facebook.com
 plista.com
 popads.net

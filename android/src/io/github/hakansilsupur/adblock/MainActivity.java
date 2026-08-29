@@ -326,9 +326,15 @@ public class MainActivity extends Activity {
     }
 
     private void confirmBlock(final String domain) {
+        // Say plainly what a dangerous block costs, before it is made.
+        String breaks = CriticalDomains.whatBreaks(domain);
+        String message = breaks == null
+                ? getString(R.string.block_message)
+                : getString(R.string.block_message_critical, breaks);
+
         new android.app.AlertDialog.Builder(this)
                 .setTitle(getString(R.string.block_title, domain))
-                .setMessage(R.string.block_message)
+                .setMessage(message)
                 .setPositiveButton(R.string.block_confirm,
                         new android.content.DialogInterface.OnClickListener() {
                             @Override
