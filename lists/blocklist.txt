@@ -1,8 +1,9 @@
-# 249 blocked domains
+# 258 blocked domains
 2mdn.net
 2o7.net
 360yield.com
 3lift.com
+aarki.net
 ad.xiaomi.com
 adblade.com
 adcash.com
@@ -11,6 +12,7 @@ adcolony.com.tr
 adform.net
 adikteev.com
 adintl.xiaomi.com
+adjoe.zone
 adjust.com
 adjust.io
 admarvel.com
@@ -25,6 +27,7 @@ adotmob.com
 adpushup.com
 adroll.com
 adroll.io
+ads.huawei.com
 ads.oppomobile.com
 ads.roku.com
 ads.viafree.se
@@ -62,6 +65,7 @@ batch.com
 bidmachine.io
 bidr.io
 bidswitch.net
+bigossp.com
 bluekai.com
 braze.com
 bytedance.com
@@ -162,6 +166,8 @@ mouseflow.com
 mtburn.com
 nend.net
 nielsen.com
+ogury.co
+ogury.io
 omtrdc.net
 onclickads.net
 onesignal.com
@@ -172,6 +178,8 @@ pangle.io
 pangleglobal.com
 pangolin-sdk-toutiao.com
 parsely.com
+persona.ly
+petalads.huawei.com
 pixel.facebook.com
 plista.com
 popads.net
@@ -202,6 +210,7 @@ singular.net
 sitemeter.com
 smaato.com
 smaato.net
+smadex.com
 smartadserver.com
 smartclip.net
 smartyads.com

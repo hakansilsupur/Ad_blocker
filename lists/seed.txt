@@ -111,6 +111,18 @@ mimo.xiaomi.com
 adintl.xiaomi.com
 
 # --- More mobile mediation and rewarded video -----------------------------
+# Full-screen "install this app" interstitials, the kind with a Reklamsiz
+# button, usually come from one of these.
+bigossp.com
+ogury.io
+ogury.co
+adjoe.zone
+smadex.com
+aarki.net
+persona.ly
+ads.huawei.com
+adxserver.ads.huawei.com
+petalads.huawei.com
 appodeal.com
 bidmachine.io
 pubnative.net

@@ -18,6 +18,7 @@ javac -nowarn -d "$OUT" \
     src/io/github/hakansilsupur/adblock/DnsMessage.java \
     src/io/github/hakansilsupur/adblock/IpPacket.java \
     src/io/github/hakansilsupur/adblock/DnsCache.java \
+    src/io/github/hakansilsupur/adblock/AdHints.java \
     tests/CoreLogicTest.java
 
 java -cp "$OUT" CoreLogicTest

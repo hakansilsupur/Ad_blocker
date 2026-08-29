@@ -1,3 +1,4 @@
+import io.github.hakansilsupur.adblock.AdHints;
 import io.github.hakansilsupur.adblock.Blocklist;
 import io.github.hakansilsupur.adblock.DnsCache;
 import io.github.hakansilsupur.adblock.DnsMessage;
@@ -39,6 +40,7 @@ public final class CoreLogicTest {
         dnsTtlParsing();
         cacheBehaviour();
         cachedAnswerMatchesTheAsker();
+        adHints();
 
         System.out.println();
         if (failures.isEmpty()) {
@@ -337,6 +339,43 @@ public final class CoreLogicTest {
         DnsMessage.Question allowed =
                 DnsMessage.parseQuestion(allowedPayload, 0, allowedPayload.length);
         check(!list.isBlocked(allowed.name), "an unlisted name is forwarded instead");
+    }
+
+    // ------------------------------------------------------------- ad hints
+
+    private static void adHints() {
+        section("ad hints");
+        String[] adLike = {
+            "ads.example.com", "adserver.example.com", "track.example.com",
+            "analytics.example.com", "pubads.g.doubleclick.net", "ads4.example.net",
+            "bigossp.com", "sdk.admost.com", "static.applovin.com",
+            "auction.unityads.unity3d.com", "csjplatform.com", "rtb.example.com",
+            "telemetry.example.com", "reklamstore.com",
+        };
+        for (int i = 0; i < adLike.length; i++) {
+            check(AdHints.looksLikeAd(adLike[i]), "flags " + adLike[i]);
+        }
+
+        // False positives are what would make the highlight useless, so the
+        // near-misses matter more than the hits.
+        String[] ordinary = {
+            "download.example.com",      // ends in "ad"
+            "broadcast.example.com",     // contains "ad"
+            "loadbalancer.example.com",  // contains "ad"
+            "upload.example.com",
+            "api.github.com",
+            "www.google.com",
+            "cdn.jsdelivr.net",
+            "mail.example.com",
+            "static.wikipedia.org",
+            "adana.example.com",         // a Turkish city, not an ad server
+        };
+        for (int i = 0; i < ordinary.length; i++) {
+            check(!AdHints.looksLikeAd(ordinary[i]), "does not flag " + ordinary[i]);
+        }
+
+        check(!AdHints.looksLikeAd(null), "handles null");
+        check(!AdHints.looksLikeAd(""), "handles empty");
     }
 
     // ----------------------------------------------------------------- cache

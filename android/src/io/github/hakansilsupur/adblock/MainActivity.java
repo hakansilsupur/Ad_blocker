@@ -265,7 +265,12 @@ public class MainActivity extends Activity {
         for (int i = 0; i < domains.size(); i++) {
             final String domain = domains.get(i);
             TextView row = new TextView(this);
-            row.setText(domain);
+            boolean suspicious = AdHints.looksLikeAd(domain);
+            // Colour the likely ad servers so the culprit stands out without
+            // the reader having to recognise ad-network names.
+            row.setText(suspicious ? "●  " + domain : "    " + domain);
+            row.setTextColor(getResources().getColor(
+                    suspicious ? R.color.accent : R.color.muted));
             row.setTextSize(13);
             row.setPadding(0, 14, 0, 14);
             row.setClickable(true);
