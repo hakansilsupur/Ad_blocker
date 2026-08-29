@@ -27,6 +27,8 @@
     <string name="nothing_blocked_yet">Henüz bir şey engellenmedi. Reklamlı bir uygulama açın, burası dolmaya başlar.</string>
 
     <string name="allowed_header">İzin verilen sorgular</string>
+    <string name="share_list">Paylaş</string>
+    <string name="share_subject">AdBlock: izin verilen sorgular</string>
     <string name="allowed_hint">Bir uygulamada hâlâ reklam mı görüyorsunuz? Uygulamayı açıp buraya dönün ve reklamın geldiği alan adına dokunun. İşaretli olanlar reklam veya izleme sunucusuna benziyor.</string>
     <string name="nothing_allowed_yet">Henüz kayıt yok. Koruma açıldığında sorgular burada görünür.</string>
     <string name="block_title">%1$s engellensin mi?</string>

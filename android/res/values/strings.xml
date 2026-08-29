@@ -24,6 +24,8 @@
     <string name="nothing_blocked_yet">Nothing blocked yet. Open an app with ads and watch this fill up.</string>
 
     <string name="allowed_header">Allowed lookups</string>
+    <string name="share_list">Share</string>
+    <string name="share_subject">AdBlock: allowed lookups</string>
     <string name="allowed_hint">Still seeing ads in an app? Open it, come back, and tap the domain the ads came from. Highlighted names look like ad or tracking servers.</string>
     <string name="nothing_allowed_yet">Nothing yet. Lookups appear here once protection is on.</string>
     <string name="block_title">Block %1$s?</string>

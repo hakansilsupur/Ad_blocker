@@ -79,6 +79,12 @@ public class MainActivity extends Activity {
                 onUpdateClicked();
             }
         });
+        findViewById(R.id.share).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                shareAllowedList();
+            }
+        });
 
         if (Stats.listSize.get() == 0) {
             // Show the list size before the service has ever run.
@@ -282,6 +288,41 @@ public class MainActivity extends Activity {
             });
             allowedList.addView(row);
         }
+    }
+
+    /**
+     * Share the allowed lookups as plain text.
+     *
+     * <p>Reading forty hostnames off a phone screen and retyping them is
+     * miserable, and it is exactly what someone has to do to report "this app
+     * still shows ads". One tap sends the list somewhere it can be pasted.
+     */
+    private void shareAllowedList() {
+        List<String> domains = Stats.recentAllowed();
+        if (domains.isEmpty()) {
+            Toast.makeText(this, R.string.nothing_allowed_yet, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        StringBuilder text = new StringBuilder(512);
+        text.append("AdBlock - allowed lookups (newest first)\n");
+        text.append("blocked ").append(Stats.blocked.get())
+                .append(" of ").append(Stats.queries.get()).append(" lookups, ")
+                .append(Stats.listSize.get()).append(" domains on the list\n\n");
+        for (int i = 0; i < domains.size(); i++) {
+            String domain = domains.get(i);
+            // Mark the suspicious ones so the list is readable by whoever
+            // receives it, not just on screen.
+            text.append(AdHints.looksLikeAd(domain) ? "* " : "  ")
+                    .append(domain)
+                    .append('\n');
+        }
+
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType("text/plain");
+        share.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_subject));
+        share.putExtra(Intent.EXTRA_TEXT, text.toString());
+        startActivity(Intent.createChooser(share, getString(R.string.share_list)));
     }
 
     private void confirmBlock(final String domain) {
