@@ -18,8 +18,10 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -62,8 +64,32 @@ public class DnsVpnService extends VpnService {
     private static final int MTU = 4096;
 
     private static final int BLOCK_TTL_SECONDS = 60;
-    private static final int UPSTREAM_TIMEOUT_MS = 5000;
-    private static final int RELAY_THREADS = 8;
+
+    /**
+     * Per-upstream timeout. Deliberately short: a resolver that has not
+     * answered in two seconds is not about to, and every second spent waiting
+     * is a second the asking app spends looking frozen.
+     */
+    private static final int UPSTREAM_TIMEOUT_MS = 2000;
+
+    /** Relay work is all waiting on the network, so threads are cheap. */
+    private static final int RELAY_THREADS = 16;
+
+    /**
+     * How many queries may wait for a thread. Bounded on purpose: an
+     * unbounded queue lets a slow upstream build a backlog of lookups whose
+     * apps have long since given up, and every new lookup then waits behind
+     * it. Dropping instead is kinder -- DNS clients retry.
+     */
+    private static final int RELAY_QUEUE = 64;
+
+    /**
+     * Queries older than this are dropped rather than sent: the app that
+     * asked has already retried, so answering now only wastes the network.
+     */
+    private static final long STALE_QUERY_MS = 2500;
+
+    private static final int CACHE_ENTRIES = 2048;
 
     private ParcelFileDescriptor tunnel;
     private Thread readerThread;
@@ -72,6 +98,14 @@ public class DnsVpnService extends VpnService {
     private volatile boolean running;
     private volatile Blocklist blocklist = new Blocklist();
     private final AtomicInteger packetId = new AtomicInteger(1);
+    private final DnsCache cache = new DnsCache(CACHE_ENTRIES);
+
+    /**
+     * Index of the upstream that answered last. Trying it first means a
+     * resolver that is unreachable on this network costs one timeout rather
+     * than one per query.
+     */
+    private final AtomicInteger preferredUpstream = new AtomicInteger(0);
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -142,7 +176,7 @@ public class DnsVpnService extends VpnService {
                 return;
             }
             tunnelOut = new FileOutputStream(tunnel.getFileDescriptor());
-            relayPool = Executors.newFixedThreadPool(RELAY_THREADS);
+            relayPool = newRelayPool();
             running = true;
             Stats.running.set(true);
 
@@ -156,6 +190,27 @@ public class DnsVpnService extends VpnService {
             stopTunnel();
             stopSelf();
         }
+    }
+
+    /**
+     * A pool with a bounded queue that drops work rather than accumulating it.
+     * {@link Executors#newFixedThreadPool} would queue without limit, which is
+     * what turns a briefly slow resolver into lasting slowness.
+     */
+    private ExecutorService newRelayPool() {
+        return new ThreadPoolExecutor(
+                RELAY_THREADS,
+                RELAY_THREADS,
+                30,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<Runnable>(RELAY_QUEUE),
+                new RejectedExecutionHandler() {
+                    @Override
+                    public void rejectedExecution(Runnable task, ThreadPoolExecutor executor) {
+                        // The client will ask again; better than a growing backlog.
+                        Stats.recordError();
+                    }
+                });
     }
 
     private void stopTunnel() {
@@ -209,6 +264,8 @@ public class DnsVpnService extends VpnService {
 
     /** Load the downloaded list if there is one, otherwise the bundled seed. */
     private void loadBlocklist() {
+        // Addresses cached on the previous network may no longer be right.
+        cache.clear();
         Blocklist loaded = Lists.load(this);
         blocklist = loaded;
         Stats.listSize.set(loaded.size());
@@ -296,6 +353,19 @@ public class DnsVpnService extends VpnService {
             return;
         }
 
+        // A cached answer skips the network entirely, which is most of what
+        // keeps this from adding latency to everything the phone does.
+        String cacheKey = DnsCache.key(question.name, question.type, question.dnsClass);
+        byte[] cached = cache.get(cacheKey, System.currentTimeMillis());
+        if (cached != null) {
+            byte[] answer = new byte[cached.length];
+            System.arraycopy(cached, 0, answer, 0, cached.length);
+            DnsMessage.setId(answer, packet, payloadOffset);
+            Stats.recordCached(question.name);
+            writeToTunnel(IpPacket.buildUdpReply(packet, answer, packetId.getAndIncrement()));
+            return;
+        }
+
         ExecutorService pool = relayPool;
         if (pool == null) {
             return;
@@ -303,7 +373,7 @@ public class DnsVpnService extends VpnService {
         byte[] query = new byte[payloadLength];
         System.arraycopy(packet, payloadOffset, query, 0, payloadLength);
         try {
-            pool.execute(new Relay(packet, query, question));
+            pool.execute(new Relay(packet, query, question, cacheKey));
         } catch (RuntimeException e) {
             // Pool shutting down, or saturated: the client will retry.
             Stats.recordError();
@@ -317,15 +387,25 @@ public class DnsVpnService extends VpnService {
         private final byte[] requestPacket;
         private final byte[] query;
         private final DnsMessage.Question question;
+        private final String cacheKey;
+        private final long queuedAtMs;
 
-        Relay(byte[] requestPacket, byte[] query, DnsMessage.Question question) {
+        Relay(byte[] requestPacket, byte[] query, DnsMessage.Question question, String cacheKey) {
             this.requestPacket = requestPacket;
             this.query = query;
             this.question = question;
+            this.cacheKey = cacheKey;
+            this.queuedAtMs = android.os.SystemClock.elapsedRealtime();
         }
 
         @Override
         public void run() {
+            if (android.os.SystemClock.elapsedRealtime() - queuedAtMs > STALE_QUERY_MS) {
+                // Whoever asked has already retried; sending this now would
+                // only add load to a network that is evidently struggling.
+                Stats.recordError();
+                return;
+            }
             DatagramSocket socket = null;
             try {
                 socket = new DatagramSocket();
@@ -338,12 +418,29 @@ public class DnsVpnService extends VpnService {
 
                 byte[] response = null;
                 String[] upstreams = Prefs.upstreams(DnsVpnService.this);
+                // Start with whichever resolver last worked, so an upstream
+                // that is unreachable here is not re-tried on every lookup.
+                int start = preferredUpstream.get() % upstreams.length;
                 for (int i = 0; i < upstreams.length && response == null; i++) {
-                    response = ask(socket, upstreams[i]);
+                    int index = (start + i) % upstreams.length;
+                    response = ask(socket, upstreams[index]);
+                    if (response != null && index != start) {
+                        preferredUpstream.set(index);
+                    }
                 }
                 if (response == null) {
                     Stats.recordError();
                     return;
+                }
+
+                // Only successful answers are worth remembering.
+                if (DnsMessage.rcode(response, 0, response.length) == 0) {
+                    cache.put(
+                            cacheKey,
+                            response,
+                            DnsMessage.minTtlSeconds(
+                                    response, 0, response.length, DnsCache.MIN_TTL_SECONDS),
+                            System.currentTimeMillis());
                 }
 
                 Stats.recordForwarded(question.name);

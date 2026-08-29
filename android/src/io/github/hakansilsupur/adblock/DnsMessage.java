@@ -10,6 +10,8 @@ public final class DnsMessage {
 
     public static final int TYPE_A = 1;
     public static final int TYPE_AAAA = 28;
+    /** EDNS pseudo-record: its TTL field holds flags, not a lifetime. */
+    public static final int TYPE_OPT = 41;
     public static final int CLASS_IN = 1;
 
     private static final int HEADER_LEN = 12;
@@ -182,6 +184,87 @@ public final class DnsMessage {
         put16(response, 4, 1);
         System.arraycopy(query, offset + HEADER_LEN, response, HEADER_LEN, questionBytes);
         return response;
+    }
+
+    /** The RCODE of a response, or -1 if it is too short to have one. */
+    public static int rcode(byte[] data, int offset, int length) {
+        if (length < HEADER_LEN) {
+            return -1;
+        }
+        return u16(data, offset + 2) & 0x0F;
+    }
+
+    /** Copy a transaction ID onto a response, so a cached answer matches. */
+    public static void setId(byte[] response, byte[] query, int queryOffset) {
+        if (response.length >= 2) {
+            response[0] = query[queryOffset];
+            response[1] = query[queryOffset + 1];
+        }
+    }
+
+    /**
+     * Step over a name, following a compression pointer if there is one.
+     *
+     * @return the offset just past the name, or -1 if it runs off the end
+     */
+    private static int skipName(byte[] data, int offset, int end) {
+        while (true) {
+            if (offset >= end) {
+                return -1;
+            }
+            int len = data[offset] & 0xFF;
+            if (len == 0) {
+                return offset + 1;
+            }
+            if ((len & 0xC0) == 0xC0) {
+                return offset + 2 <= end ? offset + 2 : -1;
+            }
+            if ((len & 0xC0) != 0) {
+                return -1;
+            }
+            offset += 1 + len;
+        }
+    }
+
+    /**
+     * The smallest TTL across a response's records, which is how long the
+     * whole answer may be cached.
+     *
+     * @return the TTL in seconds, or {@code fallback} if it cannot be read
+     */
+    public static int minTtlSeconds(byte[] data, int offset, int length, int fallback) {
+        if (length < HEADER_LEN) {
+            return fallback;
+        }
+        int end = offset + length;
+        int qdcount = u16(data, offset + 4);
+        int records = u16(data, offset + 6) + u16(data, offset + 8) + u16(data, offset + 10);
+        int cursor = offset + HEADER_LEN;
+
+        for (int i = 0; i < qdcount; i++) {
+            cursor = skipName(data, cursor, end);
+            if (cursor < 0 || cursor + 4 > end) {
+                return fallback;
+            }
+            cursor += 4;
+        }
+
+        int smallest = Integer.MAX_VALUE;
+        for (int i = 0; i < records; i++) {
+            cursor = skipName(data, cursor, end);
+            if (cursor < 0 || cursor + 10 > end) {
+                break;
+            }
+            int type = u16(data, cursor);
+            long ttl = ((long) u16(data, cursor + 4) << 16) | u16(data, cursor + 6);
+            int rdlength = u16(data, cursor + 8);
+            cursor += 10 + rdlength;
+            // OPT reuses the TTL field for EDNS flags, so it says nothing here.
+            if (type != TYPE_OPT && ttl < smallest) {
+                smallest = (int) Math.min(ttl, Integer.MAX_VALUE);
+            }
+        }
+        return smallest == Integer.MAX_VALUE ? fallback : smallest;
     }
 
     public static String typeName(int type) {

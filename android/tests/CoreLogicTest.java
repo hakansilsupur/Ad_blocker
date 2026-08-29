@@ -1,4 +1,5 @@
 import io.github.hakansilsupur.adblock.Blocklist;
+import io.github.hakansilsupur.adblock.DnsCache;
 import io.github.hakansilsupur.adblock.DnsMessage;
 import io.github.hakansilsupur.adblock.IpPacket;
 
@@ -35,6 +36,9 @@ public final class CoreLogicTest {
         ipPacketInspection();
         ipReplyChecksums();
         endToEndBlockedLookup();
+        dnsTtlParsing();
+        cacheBehaviour();
+        cachedAnswerMatchesTheAsker();
 
         System.out.println();
         if (failures.isEmpty()) {
@@ -335,7 +339,112 @@ public final class CoreLogicTest {
         check(!list.isBlocked(allowed.name), "an unlisted name is forwarded instead");
     }
 
+    // ----------------------------------------------------------------- cache
+
+    private static void dnsTtlParsing() {
+        section("DNS TTL parsing");
+        byte[] response = dnsResponse(1, "example.com", 300);
+        equal(DnsMessage.minTtlSeconds(response, 0, response.length, -1), 300,
+                "reads the TTL from an answer");
+        equal(DnsMessage.rcode(response, 0, response.length), 0, "reads the rcode");
+
+        // A question-only message has no records to take a TTL from.
+        byte[] query = dnsQuery(1, "example.com", DnsMessage.TYPE_A);
+        equal(DnsMessage.minTtlSeconds(query, 0, query.length, 42), 42,
+                "falls back when there are no records");
+
+        // Claims an answer but stops short: must not read past the buffer.
+        byte[] truncated = new byte[] {
+            0, 1, (byte) 0x81, (byte) 0x80, 0, 0, 0, 1, 0, 0, 0, 0, (byte) 9, 'x',
+        };
+        equal(DnsMessage.minTtlSeconds(truncated, 0, truncated.length, 7), 7,
+                "falls back on a truncated record");
+    }
+
+    private static void cacheBehaviour() {
+        section("cache behaviour");
+        DnsCache cache = new DnsCache(3);
+        long now = 1000000L;
+        String key = DnsCache.key("example.com", DnsMessage.TYPE_A, DnsMessage.CLASS_IN);
+
+        check(cache.get(key, now) == null, "an empty cache misses");
+        cache.put(key, new byte[] {1, 2, 3}, 60, now);
+        check(cache.get(key, now) != null, "a stored answer is found");
+
+        // The floor and ceiling are what stop a one-second TTL from being
+        // useless and a one-day TTL from outliving a change of network.
+        equal(cache.get(key, now + 59_000) != null ? 1 : 0, 1, "still valid before its TTL");
+        check(cache.get(key, now + 61_000) == null, "expired after its TTL");
+
+        DnsCache floors = new DnsCache(3);
+        floors.put(key, new byte[] {1}, 1, now);
+        check(floors.get(key, now + 20_000) != null, "a tiny TTL is raised to the floor");
+
+        DnsCache ceiling = new DnsCache(3);
+        ceiling.put(key, new byte[] {1}, 86400, now);
+        check(ceiling.get(key, now + (DnsCache.MAX_TTL_SECONDS + 5) * 1000L) == null,
+                "a huge TTL is capped");
+
+        // Keys must separate record types, or an A lookup could be answered
+        // with a AAAA record.
+        String v6 = DnsCache.key("example.com", DnsMessage.TYPE_AAAA, DnsMessage.CLASS_IN);
+        check(!key.equals(v6), "A and AAAA use different keys");
+        check(cache.get(v6, now) == null, "a AAAA lookup does not hit the A entry");
+
+        DnsCache small = new DnsCache(2);
+        small.put("a", new byte[] {1}, 60, now);
+        small.put("b", new byte[] {2}, 60, now);
+        small.get("a", now);                       // "b" is now least recently used
+        small.put("c", new byte[] {3}, 60, now);
+        equal(small.size(), 2, "capacity is respected");
+        check(small.get("a", now) != null, "the recently used entry survives");
+        check(small.get("b", now) == null, "the least recently used entry is evicted");
+
+        cache.clear();
+        equal(cache.size(), 0, "clearing empties the cache");
+    }
+
+    /** A cached reply must carry the new asker's transaction ID, not the old one. */
+    private static void cachedAnswerMatchesTheAsker() {
+        section("cached answers match the asker");
+        byte[] stored = dnsResponse(0x1111, "example.com", 300);
+        byte[] newQuery = dnsQuery(0x2222, "example.com", DnsMessage.TYPE_A);
+
+        byte[] reply = new byte[stored.length];
+        System.arraycopy(stored, 0, reply, 0, stored.length);
+        DnsMessage.setId(reply, newQuery, 0);
+
+        equal(u16(reply, 0), 0x2222, "the reply takes the new query's id");
+        check(sameBytes(reply, 2, stored, 2, stored.length - 2),
+                "nothing but the id changes");
+    }
+
     // ---------------------------------------------------------------- helpers
+
+    /** Build a response with one A record, as an upstream would return. */
+    private static byte[] dnsResponse(int id, String name, int ttl) {
+        byte[] query = dnsQuery(id, name, DnsMessage.TYPE_A);
+        byte[] out = new byte[query.length + 16];
+        System.arraycopy(query, 0, out, 0, query.length);
+        out[2] = (byte) 0x81;   // response, recursion desired
+        out[3] = (byte) 0x80;   // recursion available, NOERROR
+        out[7] = 1;             // one answer
+        int at = query.length;
+        out[at] = (byte) 0xC0;  // pointer to the question's name
+        out[at + 1] = 0x0C;
+        out[at + 3] = (byte) DnsMessage.TYPE_A;
+        out[at + 5] = (byte) DnsMessage.CLASS_IN;
+        out[at + 6] = (byte) ((ttl >> 24) & 0xFF);
+        out[at + 7] = (byte) ((ttl >> 16) & 0xFF);
+        out[at + 8] = (byte) ((ttl >> 8) & 0xFF);
+        out[at + 9] = (byte) (ttl & 0xFF);
+        out[at + 11] = 4;       // rdlength
+        out[at + 12] = 93;
+        out[at + 13] = (byte) 184;
+        out[at + 14] = (byte) 216;
+        out[at + 15] = 34;
+        return out;
+    }
 
     /** Build a DNS query the way a phone's resolver would. */
     private static byte[] dnsQuery(int id, String name, int type) {

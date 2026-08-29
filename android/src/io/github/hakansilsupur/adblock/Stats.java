@@ -23,6 +23,7 @@ public final class Stats {
     public static final AtomicLong queries = new AtomicLong();
     public static final AtomicLong blocked = new AtomicLong();
     public static final AtomicLong forwarded = new AtomicLong();
+    public static final AtomicLong cached = new AtomicLong();
     public static final AtomicLong errors = new AtomicLong();
     public static final AtomicInteger listSize = new AtomicInteger();
 
@@ -51,6 +52,12 @@ public final class Stats {
                 recent.removeLast();
             }
         }
+    }
+
+    /** Answered from the on-device cache, without touching the network. */
+    public static void recordCached(String domain) {
+        cached.incrementAndGet();
+        recordForwarded(domain);
     }
 
     public static void recordForwarded(String domain) {
@@ -106,6 +113,7 @@ public final class Stats {
         queries.set(0);
         blocked.set(0);
         forwarded.set(0);
+        cached.set(0);
         errors.set(0);
         synchronized (recent) {
             recent.clear();
