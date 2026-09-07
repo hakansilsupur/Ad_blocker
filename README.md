@@ -339,6 +339,11 @@ The generated files (`lists/blocklist.txt`, `extension/rules/ads.json`) are
 committed so the repo works on checkout; CI rebuilds them from the seed and
 fails if they have drifted.
 
+## How it was built
+
+Every part of this came from a short conversation; [PROMPTS.md](PROMPTS.md)
+records the requests that shaped it and what each one changed.
+
 ## License
 
 MIT.
